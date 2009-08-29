@@ -1,9 +1,9 @@
 /* vim:set ts=2 sw=2 et: */
-/*-- Copyright 2009 Geckimo --*/
+/*-- Copyright 2009 fesLabs --*/
 
-package com.geckimo.monitor.json;
+package com.fesLabs.web.json;
 
-import com.geckimo.monitor.json.external.Base64Coder;
+import com.fesLabs.web.json.external.Base64;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -41,11 +41,11 @@ public class InetAddressSerializer implements ICustomSerializer {
       value = fromClass.getMembers().get("strHost");
       if(value != null && value instanceof JsonString) {
         try {
-          address = InetAddress.getByAddress(((JsonString)value).getValue(), Base64Coder.decode(jsonString.getValue()));
+          address = InetAddress.getByAddress(((JsonString)value).getValue(), Base64.decode(jsonString.getValue()));
         } catch(Exception e) {}
       } else {
         try {
-          address = InetAddress.getByAddress(Base64Coder.decode(jsonString.getValue()));
+          address = InetAddress.getByAddress(Base64.decode(jsonString.getValue()));
         } catch(Exception e) {}
       }
     } else {
@@ -74,7 +74,7 @@ public class InetAddressSerializer implements ICustomSerializer {
       if(!webby) {
         jsonClass.add("_cid", new JsonNumber(1));
         jsonClass.add("_nid", new JsonNumber(101));
-        jsonClass.add("bAddress", new JsonString(new String(Base64Coder.encode(address.getAddress()))));
+        jsonClass.add("bAddress", new JsonString(new String(Base64.encode(address.getAddress()))));
       }
       jsonClass.add("strAddress", new JsonString(address.getHostAddress()));
       if(address.getHostName() != null) {

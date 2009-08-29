@@ -1,20 +1,42 @@
 /* vim:set ts=2 sw=2 et: */
-/*-- Copyright 2009 Geckimo --*/
+/*-- Copyright 2009 fesLabs --*/
 
-package com.geckimo.monitor.json;
+package com.fesLabs.web.json;
 
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
+import java.util.Map;
 
-public class JsonArray extends JsonValue implements IJsonCollection
+public class JsonArray extends JsonValue implements IJsonCollection //, Iterator<JsonValue>
 {
   private ArrayList<JsonValue> members = new ArrayList<JsonValue>();
 
   public JsonArray() {
   }
 
+  public JsonArray(List values, boolean webby) {
+      for(Object value : values) {
+          JsonValue jsonValue = JsonSerialize.serializeUnknown(value, webby);
+          this.members.add(jsonValue);
+      }
+  }
+
+  public JsonArray(Map map, boolean webby) {
+      
+      JsonValue jsonValue = JsonSerialize.serializeUnknown(map, webby);
+      this.members.add(jsonValue);
+
+  }
+
+/*
+  public Iterator<JsonValue> iterator() {
+      return members.iterator();
+  }
+*/
   public int size() {
     return this.members.size();
   }

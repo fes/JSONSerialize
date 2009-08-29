@@ -1,8 +1,9 @@
 /* vim:set ts=2 sw=2 et: */
-/*-- Copyright 2009 Geckimo --*/
+/*-- Copyright 2009 fesLabs --*/
 
-package com.geckimo.monitor.json;
+package com.fesLabs.web.json;
 
+import com.fesLabs.web.json.external.Base64;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.HashMap;
@@ -16,6 +17,14 @@ public class JsonClass extends JsonValue implements IJsonCollection
 
   public JsonClass(){
   }
+
+  public JsonClass(Object obj, Boolean webby){
+      JsonClass jsonClass = (JsonClass) JsonSerialize.serializeUnknown(obj, webby);
+      for(String key : jsonClass.members.keySet()) {
+          this.members.put(key, jsonClass.members.get(key));
+      }
+  }
+
 
   public HashMap<String, JsonValue> getMembers() {
     return this.members;
@@ -320,6 +329,14 @@ public class JsonClass extends JsonValue implements IJsonCollection
       return ((JsonString)jsonValue).getValue();
     }
     return defaultValue;
+  }
+
+   public byte[] getByteArray(String key) {
+    JsonValue jsonValue = this.members.get(key);
+    if(jsonValue != null && jsonValue instanceof JsonString) {
+      return Base64.decode(((JsonString)jsonValue).getValue());
+    }
+    return new byte[0];
   }
 
   public boolean getBoolean(String key) {

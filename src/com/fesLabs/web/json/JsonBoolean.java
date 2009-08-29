@@ -1,7 +1,7 @@
   /* vim:set ts=2 sw=2 et: */
-/*-- Copyright 2009 Geckimo --*/
+/*-- Copyright 2009 fesLabs --*/
 
-package com.geckimo.monitor.json;
+package com.fesLabs.web.json;
 
 import java.io.IOException;
 import java.io.Writer;

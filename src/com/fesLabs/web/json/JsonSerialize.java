@@ -1,7 +1,7 @@
 /* vim:set ts=2 sw=2 et: */
-/*-- Copyright 2009 Geckimo --*/
+/*-- Copyright 2009 fesLabs --*/
 
-package com.geckimo.monitor.json;
+package com.fesLabs.web.json;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.TreeMap;
 
-import com.geckimo.monitor.json.external.*;
+import com.fesLabs.web.json.external.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -19,6 +19,7 @@ import java.lang.reflect.Type;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -373,6 +374,7 @@ public class JsonSerialize {
     try {
       InetAddressSerializer.registerType();
       DateSerializer.registerType();
+      UUIDSerializer.registerType();
     } catch(Exception e) {
       e.printStackTrace();
     }
@@ -497,7 +499,9 @@ public class JsonSerialize {
         return serializeUnknownMap((Map)o, webby);
       } else if(o instanceof HashSet) {
         return serializeUnknownSet((Set)o, webby);
-      } else if(o instanceof HashMap) {
+      } else if((o instanceof HashMap)
+            || (o instanceof ConcurrentHashMap)){
+
         return serializeUnknownMap((Map)o, webby);
       }
     } else {
@@ -545,7 +549,7 @@ public class JsonSerialize {
               case SerializeField.TYPE_BINARY: {
                 Object val = fieldDef.field.get(o);
                 if(val != null) {
-                  result.getMembers().put(fieldDef.name, new JsonString(new String(Base64Coder.encode((byte[])val))));
+                  result.getMembers().put(fieldDef.name, new JsonString(new String(Base64.encode((byte[])val))));
                 }
               }
               break;
@@ -750,7 +754,7 @@ public class JsonSerialize {
                 fieldDef.field.set(result, (String)((JsonString)jsonValue).getValue());
                 break;
               case SerializeField.TYPE_BINARY:
-                fieldDef.field.set(result, Base64Coder.decode(((JsonString)jsonValue).getValue()));
+                fieldDef.field.set(result, Base64.decode(((JsonString)jsonValue).getValue()));
                 break;
               case SerializeField.TYPE_ARRAYLIST:
                 fieldDef.field.set(result, deserializeUnknown(jsonValue, fieldDef.typeDef));
@@ -804,7 +808,7 @@ public class JsonSerialize {
           case SerializeField.TYPE_STRING:
             return (String)((JsonString)jsonValue).getValue();
           case SerializeField.TYPE_BINARY:
-            return Base64Coder.decode(((JsonString)jsonValue).getValue());
+            return Base64.decode(((JsonString)jsonValue).getValue());
           case SerializeField.TYPE_ARRAYLIST: {
               ArrayList arrayList = new ArrayList();
               JsonArray jsonArray = (JsonArray) jsonValue;
