@@ -14,6 +14,75 @@ public class JsonValue
 		return null;
 	}
 
+  public JsonClass viaClass(String path) {
+    JsonValue value = via(path);
+    if(value != null && value instanceof JsonClass) {
+      return (JsonClass) value;
+    }
+    return null;
+  }
+
+  public JsonArray viaArray(String path) {
+    JsonValue value = via(path);
+    if(value != null && value instanceof JsonArray) {
+      return (JsonArray) value;
+    }
+    return null;
+  }
+
+  public boolean viaBoolean(String path) {
+    JsonValue value = via(path);
+    if(value != null) {
+      if(value instanceof JsonBoolean) {
+        return ((JsonBoolean)value).getValue();
+      } else if(value instanceof JsonNumber) {
+        return (((JsonNumber)value).getAsLong() != 0l);
+      } else if(value instanceof JsonString) {
+        return (((JsonString)value).getValue() != null && ((JsonString)value).getValue().equalsIgnoreCase("true"));
+      }
+    }
+    return false;
+  }
+
+  public int viaInt(String path, int defaultValue) {
+    JsonValue value = via(path);
+    if(value != null) {
+      return (int)value.longValue(defaultValue);
+    }
+    return defaultValue;
+  }
+
+  public long viaLong(String path, long defaultValue) {
+    JsonValue value = via(path);
+    if(value != null) {
+      return value.longValue(defaultValue);
+    }
+    return defaultValue;
+  }
+
+  public String viaString(String path) {
+    JsonValue value = via(path);
+    if(value != null) {
+      return value.stringValue();
+    }
+    return null;
+  }
+
+  public JsonValue via(String path) {
+    if(path == null || path.equals("")) {
+      return this;
+    }
+    return null;
+  }
+
+  public String stringValue() {
+    return null;
+  }
+
+  public long longValue(long defaultValue) {
+    return defaultValue;
+  }
+
 	protected int collectWhitespace(String json, int initialOffset) {
 		int offset = initialOffset;
 		int count = 0;
@@ -30,6 +99,8 @@ public class JsonValue
 			}
 		}
 	}
+
+  public static boolean convertWhitespace = true;
 
 	public static String jsonSanitize(String value) {
     return jsonSanitizeRegular(value);
@@ -58,19 +129,39 @@ public class JsonValue
             writer.write("\\\\");
             break;
           case '\b':
-            writer.write("\\b");
+            if(JsonValue.convertWhitespace) {
+              writer.write("\\b");
+            } else {
+              writer.write(c);
+            }
             break;
           case '\f':
-            writer.write("\\f");
+            if(JsonValue.convertWhitespace) {
+              writer.write("\\f");
+            } else {
+              writer.write(c);
+            }
             break;
           case '\n':
-            writer.write("\\n");
+            if(JsonValue.convertWhitespace) {
+              writer.write("\\n");
+            } else {
+              writer.write(c);
+            }
             break;
           case '\r':
-            writer.write("\\r");
+            if(JsonValue.convertWhitespace) {
+              writer.write("\\r");
+            } else {
+              writer.write(c);
+            }
             break;
           case '\t':
-            writer.write("\\t");
+            if(JsonValue.convertWhitespace) {
+              writer.write("\\t");
+            } else {
+              writer.write(c);
+            }
             break;
           default:
             writer.write(c);

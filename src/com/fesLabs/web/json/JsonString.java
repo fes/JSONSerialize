@@ -22,6 +22,21 @@ public class JsonString extends JsonValue
 	public JsonString(String value) {
 		this.value = value;
 	}
+  
+  @Override
+  public String stringValue() {
+    return this.value;
+  }
+
+  @Override
+  public long longValue(long defaultValue) {
+    if(this.value != null) {
+      try {
+        return Long.parseLong(this.value);
+      } catch(Exception e) {}
+    }
+    return defaultValue;
+  }
 
 	@Override
 	public Object getNative() {

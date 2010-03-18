@@ -9,10 +9,12 @@ import com.fesLabs.web.json.JsonBoolean;
 import com.fesLabs.web.json.JsonClass;
 import com.fesLabs.web.json.JsonNumber;
 import com.fesLabs.web.json.JsonString;
+import com.fesLabs.web.json.JsonRegex;
 import com.fesLabs.web.json.JsonValue;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
+import com.mongodb.ObjectId;
 
 public class MongoConvert {
 
@@ -30,6 +32,9 @@ public class MongoConvert {
 				dbObject.put(name, childObject);
 			} else if (jsonObject instanceof JsonString) {
 				JsonString jsonValue = (JsonString) jsonObject;
+				dbObject.put(name, jsonValue.getValue());
+			} else if (jsonObject instanceof JsonRegex) {
+				JsonRegex jsonValue = (JsonRegex) jsonObject;
 				dbObject.put(name, jsonValue.getValue());
 			} else if (jsonObject instanceof JsonNumber) {
 				JsonNumber jsonValue = (JsonNumber) jsonObject;
@@ -60,6 +65,9 @@ public class MongoConvert {
 			} else if (jsonObject instanceof JsonString) {
 				JsonString jsonValue = (JsonString) jsonObject;
 				dbObject.add(jsonValue.getValue());
+			} else if (jsonObject instanceof JsonRegex) {
+				JsonRegex jsonValue = (JsonRegex) jsonObject;
+				dbObject.add(jsonValue.getValue());
 			} else if (jsonObject instanceof JsonNumber) {
 				JsonNumber jsonValue = (JsonNumber) jsonObject;
 				if (jsonValue.isIsDouble()) {
@@ -75,7 +83,7 @@ public class MongoConvert {
 		return dbObject;
 	}
 
-	public static JsonClass DBObjectToJson(BasicDBObject dbObject) {
+	public static JsonClass DBObjectToJson(DBObject dbObject) {
 		JsonClass jsonClass = new JsonClass();
 		for (String key : dbObject.keySet()) {
 			Object oValue = dbObject.get(key);
@@ -103,12 +111,18 @@ public class MongoConvert {
 			} else if (oValue instanceof String) {
 				JsonString newValue = new JsonString((String) oValue);
 				jsonClass.add(key, newValue);
+			} else if (oValue instanceof java.util.regex.Pattern) {
+				JsonRegex newValue = new JsonRegex((java.util.regex.Pattern) oValue);
+				jsonClass.add(key, newValue);
 			} else if (oValue instanceof BasicDBList) {
 				JsonArray newValue = dbListToJsonArray((BasicDBList)oValue);
 				jsonClass.add(key, newValue);
-			} else if (oValue instanceof BasicDBObject) {
-				JsonClass newValue = DBObjectToJson((BasicDBObject) oValue);
+			} else if (oValue instanceof DBObject) {
+				JsonClass newValue = DBObjectToJson((DBObject) oValue);
 				jsonClass.add(key, newValue);
+			} else if (oValue instanceof ObjectId) {
+        ObjectId oid = (ObjectId) oValue;
+        jsonClass.add(key, oid.toString());
 			}
 		}
 		return jsonClass;
@@ -141,12 +155,18 @@ public class MongoConvert {
 			} else if (oValue instanceof String) {
 				JsonString newValue = new JsonString((String) oValue);
 				jsonArray.add(newValue);
+			} else if (oValue instanceof java.util.regex.Pattern) {
+				JsonRegex newValue = new JsonRegex((java.util.regex.Pattern) oValue);
+				jsonArray.add(newValue);
 			} else if (oValue instanceof BasicDBList) {
 				JsonArray newValue = dbListToJsonArray((BasicDBList)oValue);
 				jsonArray.add(newValue);
-			} else if (oValue instanceof BasicDBObject) {
-				JsonClass newValue = DBObjectToJson((BasicDBObject) oValue);
+			} else if (oValue instanceof DBObject) {
+				JsonClass newValue = DBObjectToJson((DBObject) oValue);
 				jsonArray.add(newValue);
+			} else if (oValue instanceof ObjectId) {
+        ObjectId oid = (ObjectId) oValue;
+        jsonArray.add(oid.toString());
 			}
 		}
 		return jsonArray;

@@ -8,8 +8,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface SerializeField {
-	int value();
-
 	static int TYPE_BYTE = 0x01;
 	static int TYPE_SHORT = 0x02;
 	static int TYPE_INT = 0x03;
@@ -27,4 +25,7 @@ public @interface SerializeField {
 	static int TYPE_HASHMAP = 0x0f;
 	static int TYPE_CLASS = 0x10;
 	static int TYPE_CHAR = 0x11;
+	static int TYPE_CUSTOM = 0x12;
+	static int TYPE_JSON = 0x13;
+	static int TYPE_REGEX = 0x14;
 }

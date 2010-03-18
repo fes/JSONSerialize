@@ -42,6 +42,16 @@ public class JsonNumber extends JsonValue
 		this.lValue = (long) value;
 	}
 
+    @Override
+    public String stringValue() {
+      return (this.isDouble ? ("" + dValue) : ("" + lValue));
+    }
+
+    @Override
+    public long longValue(long defaultValue) {
+      return (this.isDouble ? ((long) dValue) : lValue);
+    }
+
 	@Override
 	public Object getNative() {
 		if(isDouble) {

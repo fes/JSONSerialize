@@ -5,5 +5,5 @@ package com.fesLabs.web.json;
 
 public interface IJsonCollection
 {
-	public void add(String name, JsonValue value);
+	public void collectionAdd(String name, JsonValue value);
 }

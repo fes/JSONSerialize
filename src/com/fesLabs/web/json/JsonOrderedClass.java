@@ -6,11 +6,11 @@ package com.fesLabs.web.json;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
 public class JsonOrderedClass extends JsonClass
 {
-
   private LinkedHashMap<String, JsonValue> members = new LinkedHashMap<String, JsonValue>();
 
   public JsonOrderedClass(){
@@ -23,7 +23,7 @@ public class JsonOrderedClass extends JsonClass
       }
   }
 
-  public LinkedHashMap<String, JsonValue> getMembers() {
+  public Map<String, JsonValue> getMembers() {
     return this.members;
   }
 

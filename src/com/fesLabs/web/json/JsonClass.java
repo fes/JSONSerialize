@@ -7,55 +7,181 @@ import com.fesLabs.web.json.external.Base64;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 public class JsonClass extends JsonValue implements IJsonCollection
 {
   public static boolean memberNamesInQuotes = false;
+  public static boolean useHashMap = false;
 
-  private HashMap<String, JsonValue> members = new HashMap<String, JsonValue>();
+  //private HashMap<String, JsonValue> members = new HashMap<String, JsonValue>();
+  private final Map<String, JsonValue> members;
 
-  public JsonClass(){
+  public JsonClass() {
+    if(useHashMap) {
+      members = new HashMap<String, JsonValue>();
+    } else {
+      members = new TreeMap<String, JsonValue>();
+    }
+  }
+
+  public JsonClass(String value){
+    this();
+    this.parse(value, 0);
+  }
+
+  public JsonClass(String key, String value){
+    this();
+    this.add(key, value);
+  }
+
+  public JsonClass(String key, JsonValue value){
+    this();
+    this.add(key, value);
   }
 
   public JsonClass(Object obj, Boolean webby){
-      JsonClass jsonClass = (JsonClass) JsonSerialize.serializeUnknown(obj, webby);
-      for(String key : jsonClass.members.keySet()) {
-          this.members.put(key, jsonClass.members.get(key));
+    this();
+      if (obj != null){
+          JsonClass jsonClass = (JsonClass) JsonSerialize.serializeUnknown(obj, webby);
+          for(String key : jsonClass.members.keySet()) {
+              this.members.put(key, jsonClass.members.get(key));
+          }
       }
   }
 
+  @Override
+  public JsonValue via(String path) {
+    StringBuffer part = new StringBuffer();
+    int index = 0;
+    boolean done = false;
+    for(; index < path.length(); index++) {
+      char c = path.charAt(index);
+      switch(c) {
+        case '.':
+        case '[':
+        case ']':
+          if(c == ']') index++;
+          done = true;
+          break;
+        case '\\':
+          index++;
+          if(index < path.length()) {
+            part.append(path.charAt(index));
+          }
+          break;
+        default:
+          part.append(c);
+          break;
+      }
+      if(done) {
+        break;
+      }
+    }
+    if(part.length() > 0) {
+      String strMember = part.toString();
+      if(strMember.startsWith("\"") && strMember.endsWith("\"")) {
+        strMember = strMember.substring(1, strMember.length() - 2);
+      }
+      JsonValue value = this.get(strMember);
+      if(value != null) {
+        if(index < path.length()) {
+          return value.via(path.substring(index + 1));
+        } else {
+          return value;
+        }
+      }
+    }
+    return null;
+  }
 
-  public HashMap<String, JsonValue> getMembers() {
+  public Map<String, JsonValue> getMembers() {
     return this.members;
   }
 
-  public void add(String name, JsonValue value) {
+  public void collectionAdd(String name, JsonValue value) {
     this.members.put(name, value);
   }
 
-  public void add(String name, long value) {
-    this.members.put(name, new JsonNumber(value));
+  public JsonClass add(String name, JsonValue value) {
+    this.members.put(name, value);
+    return this;
   }
 
-  public void add(String name, int value) {
+  public JsonClass add(String name, long value) {
     this.members.put(name, new JsonNumber(value));
+    return this;
   }
 
-  public void add(String name, double value) {
+  public JsonClass add(String name, int value) {
     this.members.put(name, new JsonNumber(value));
+    return this;
   }
 
-  public void add(String name, boolean value) {
+  public JsonClass add(String name, double value) {
+    this.members.put(name, new JsonNumber(value));
+    return this;
+  }
+
+  public JsonClass add(String name, boolean value) {
     this.members.put(name, new JsonBoolean(value));
+    return this;
   }
 
-  public void add(String name, String value) {
+  public JsonClass add(String name, String value) {
     this.members.put(name, new JsonString(value));
+    return this;
   }
 
-  public void addNull(String name) {
+  public JsonClass add(String name, java.util.regex.Pattern value) {
+    this.members.put(name, new JsonRegex(value));
+    return this;
+  }
+
+  public JsonClass addNull(String name) {
     this.members.put(name, null);
+    return this;
+  }
+
+  public JsonClass remove(String name) {
+    this.members.remove(name);
+    return this;
+  }
+
+  public JsonClass remove(String[] names) {
+    for(String name : names) {
+      this.members.remove(name);
+    }
+    return this;
+  }
+
+  public JsonClass allowOnly(String[] name) {
+    TreeSet<String> names = new TreeSet<String>();
+    for(String value : name) {
+      names.add(value);
+    }
+    Stack<String> toRemove = new Stack<String>();
+    for(String key : this.members.keySet()) {
+      if(!names.contains(key)) toRemove.push(key);
+    }
+    while(!toRemove.empty()) this.members.remove(toRemove.pop());
+    return this;
+  }
+
+  protected boolean shouldQuoteKey(String key) {
+    boolean forceQuotes = false;
+    for(int i = 0; i < key.length(); i++) {
+      char c = key.charAt(i);
+      if(c == '.' || c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\'' || c == '\"' || c == '-') {
+        forceQuotes = true;
+        break;
+      }
+    }
+    return forceQuotes;
   }
 
   @Override
@@ -64,20 +190,24 @@ public class JsonClass extends JsonValue implements IJsonCollection
     writer.write("{");
     boolean comma = false;
     for(String key : members.keySet()) {
+      if(key == null) {
+        continue;
+      }
       if(skipFields != null && skipFields.contains(key)) {
         continue;
       }
       JsonValue value = this.members.get(key);
       if(value != null) {
+        boolean forceQuotes = shouldQuoteKey(key) || key.equals("");
         if(comma) {
           writer.write(",");
         }
         comma = true;
-        if(memberNamesInQuotes) {
+        if(memberNamesInQuotes || forceQuotes) {
           writer.write("\"");
         }
         jsonSanitizeRegular(key, writer);
-        if(memberNamesInQuotes) {
+        if(memberNamesInQuotes || forceQuotes) {
           writer.write("\"");
         }
         writer.write(":");
@@ -220,6 +350,17 @@ public class JsonClass extends JsonValue implements IJsonCollection
             count += consumed;
             return count;
           }
+        case '/':
+          JsonRegex regexValue = new JsonRegex();
+          consumed = regexValue.parse(json, offset);
+          if(consumed == -1) {
+            return -1;
+          } else {
+            this.members.put(name.getValue(), regexValue);
+            offset += consumed;
+            count += consumed;
+            return count;
+          }
         case '{':
           JsonClass classValue = new JsonClass();
           consumed = classValue.parse(json, offset);
@@ -293,14 +434,8 @@ public class JsonClass extends JsonValue implements IJsonCollection
 
   public long getLong(String key, long defaultValue) {
     JsonValue jsonValue = this.members.get(key);
-    if(jsonValue != null && jsonValue instanceof JsonNumber) {
-      return ((JsonNumber)jsonValue).getAsLong();
-    } else if(jsonValue != null && jsonValue instanceof JsonString) {
-      try {
-        return Long.parseLong(((JsonString)jsonValue).getValue());
-      } catch(Exception e) {
-        return defaultValue;
-      }
+    if(jsonValue != null) {
+      return jsonValue.longValue(defaultValue);
     }
     return defaultValue;
   }
@@ -327,6 +462,8 @@ public class JsonClass extends JsonValue implements IJsonCollection
     JsonValue jsonValue = this.members.get(key);
     if(jsonValue != null && jsonValue instanceof JsonString) {
       return ((JsonString)jsonValue).getValue();
+    } else if(jsonValue != null) {
+      return jsonValue.stringValue();
     }
     return defaultValue;
   }
@@ -334,7 +471,9 @@ public class JsonClass extends JsonValue implements IJsonCollection
    public byte[] getByteArray(String key) {
     JsonValue jsonValue = this.members.get(key);
     if(jsonValue != null && jsonValue instanceof JsonString) {
-      return Base64.decode(((JsonString)jsonValue).getValue());
+      try {
+        return Base64.decode(((JsonString)jsonValue).getValue());
+      } catch(Exception e) {}
     }
     return new byte[0];
   }
@@ -347,6 +486,8 @@ public class JsonClass extends JsonValue implements IJsonCollection
     JsonValue jsonValue = this.members.get(key);
     if(jsonValue != null && jsonValue instanceof JsonBoolean) {
       return ((JsonBoolean)jsonValue).getValue();
+    } else if(jsonValue != null && jsonValue instanceof JsonNumber) {
+      return (((JsonNumber)jsonValue).getAsLong() != 0);
     }
     return defaultValue;
   }
@@ -356,7 +497,7 @@ public class JsonClass extends JsonValue implements IJsonCollection
     if(jsonValue != null && jsonValue instanceof JsonArray) {
       return ((JsonArray)jsonValue);
     }
-    return new JsonArray();
+    return null;
   }
 
   public JsonClass getClass(String key) {
@@ -364,7 +505,7 @@ public class JsonClass extends JsonValue implements IJsonCollection
     if(jsonValue != null && jsonValue instanceof JsonClass) {
       return ((JsonClass)jsonValue);
     }
-    return new JsonClass();
+    return null;
   }
 
   public static JsonClass fromString(String json) {

@@ -4,7 +4,8 @@
 package com.fesLabs.web.json;
 
 public interface ICustomSerializer {
-  public Object deserialize(JsonClass fromClass);
-  public JsonClass serialize(Object fromObject, boolean webby);
+  public Object deserialize(JsonValue fromValue);
+  public JsonValue serialize(Object fromObject, boolean webby);
   public Object createArray(int size);
+  public JsonClass getSchema(boolean webby);
 }

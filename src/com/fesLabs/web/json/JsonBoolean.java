@@ -23,6 +23,16 @@ public class JsonBoolean extends JsonValue
       return value;
     }
 
+    @Override
+    public String stringValue() {
+      return (this.value ? "true" : "false");
+    }
+
+    @Override
+    public long longValue(long defaultValue) {
+      return (this.value ? 1l : 0l);
+    }
+
     public boolean getValue() {
       return this.value;
     }

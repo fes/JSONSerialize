@@ -11,17 +11,23 @@ import java.util.List;
 import java.util.Set;
 import java.util.Map;
 
-public class JsonArray extends JsonValue implements IJsonCollection //, Iterator<JsonValue>
+public class JsonArray extends JsonValue implements IJsonCollection, Iterable<JsonValue>
 {
   private ArrayList<JsonValue> members = new ArrayList<JsonValue>();
 
   public JsonArray() {
   }
 
+  public JsonArray(String value) {
+    this.parse(value, 0);
+  }
+
   public JsonArray(List values, boolean webby) {
-      for(Object value : values) {
-          JsonValue jsonValue = JsonSerialize.serializeUnknown(value, webby);
-          this.members.add(jsonValue);
+      if (values != null){
+          for(Object value : values) {
+              JsonValue jsonValue = JsonSerialize.serializeUnknown(value, webby);
+              this.members.add(jsonValue);
+          }
       }
   }
 
@@ -32,11 +38,67 @@ public class JsonArray extends JsonValue implements IJsonCollection //, Iterator
 
   }
 
-/*
+  public JsonArray(Set set, boolean webby) {
+      JsonValue jsonValue = JsonSerialize.serializeUnknown(set, webby);
+      this.members.add(jsonValue);
+  }
+
+  @Override
+  public JsonValue via(String path) {
+    StringBuffer part = new StringBuffer();
+    int index = 0;
+    boolean done = false;
+    for(; index < path.length(); index++) {
+      char c = path.charAt(index);
+      switch(c) {
+        case '.':
+        case '[':
+        case ']':
+          if(c == ']') index++;
+          done = true;
+          break;
+        case '\\':
+          index++;
+          if(index < path.length()) {
+            part.append(path.charAt(index));
+          }
+          break;
+        default:
+          part.append(c);
+          break;
+      }
+      if(done) {
+        break;
+      }
+    }
+    if(part.length() > 0) {
+      String strMember = part.toString();
+      try {
+        if(strMember.equals("length")) {
+          return new JsonNumber(this.members.size());
+        } else {
+          int memberIndex = Integer.parseInt(strMember);
+          if(memberIndex < this.members.size()) {
+            JsonValue value = this.members.get(memberIndex);
+            if(value != null) {
+              if(index < path.length()) {
+                return value.via(path.substring(index + 1));
+              } else {
+                return value;
+              }
+            }
+          }
+        }
+      } catch(Exception e) {
+      }
+    }
+    return null;
+  }
+
   public Iterator<JsonValue> iterator() {
       return members.iterator();
   }
-*/
+
   public int size() {
     return this.members.size();
   }
@@ -48,32 +110,47 @@ public class JsonArray extends JsonValue implements IJsonCollection //, Iterator
     return this.members.get(index);
   }
 
-  public void add(JsonValue value) {
+  public ArrayList<JsonValue> getAll(){
+      return this.members;
+  }
+
+  public void collectionAdd(String name, JsonValue value) {
     this.members.add(value);
   }
 
-  public void add(long value) {
-    this.members.add(new JsonNumber(value));
+  public JsonArray add(JsonValue value) {
+    this.members.add(value);
+    return this;
   }
 
-  public void add(int value) {
+  public JsonArray add(long value) {
     this.members.add(new JsonNumber(value));
+    return this;
   }
 
-  public void add(double value) {
+  public JsonArray add(int value) {
     this.members.add(new JsonNumber(value));
+    return this;
   }
 
-  public void add(boolean value) {
+  public JsonArray add(double value) {
+    this.members.add(new JsonNumber(value));
+    return this;
+  }
+
+  public JsonArray add(boolean value) {
     this.members.add(new JsonBoolean(value));
+    return this;
   }
 
-  public void add(String value) {
+  public JsonArray add(String value) {
     this.members.add(new JsonString(value));
+    return this;
   }
 
-  public void add(String name, JsonValue value) {
-    this.members.add(value);
+  public JsonArray add(java.util.regex.Pattern value) {
+    this.members.add(new JsonRegex(value));
+    return this;
   }
 
   public void remove(int index) {
@@ -169,6 +246,17 @@ public class JsonArray extends JsonValue implements IJsonCollection //, Iterator
             count += consumed;
             return count;
           }
+        case '/':
+          JsonRegex regexValue = new JsonRegex();
+          consumed = regexValue.parse(json, offset);
+          if(consumed == -1) {
+            return -1;
+          } else {
+            this.members.add(regexValue);
+            offset += consumed;
+            count += consumed;
+            return count;
+          }
         case '{':
           JsonClass classValue = new JsonClass();
           consumed = classValue.parse(json, offset);
@@ -191,6 +279,19 @@ public class JsonArray extends JsonValue implements IJsonCollection //, Iterator
             count += consumed;
             return count;
           }
+        case 'n':
+        {
+          JsonString nullValue = new JsonString(true);
+          consumed = nullValue.parse(json, offset);
+          System.err.println("!!!! here: " + consumed);
+          if(consumed == -1) {
+            return -1;
+          } else {
+            offset += consumed;
+            count += consumed;
+            return count;
+          }
+        }
         case 't':
         case 'f':
         case 'T':
@@ -223,14 +324,8 @@ public class JsonArray extends JsonValue implements IJsonCollection //, Iterator
 
   public long getLong(int key, long defaultValue) {
     JsonValue jsonValue = this.members.get(key);
-    if(jsonValue != null && jsonValue instanceof JsonNumber) {
-      return ((JsonNumber)jsonValue).getAsLong();
-    } else if(jsonValue != null && jsonValue instanceof JsonString) {
-      try {
-        return Long.parseLong(((JsonString)jsonValue).getValue());
-      } catch(Exception e) {
-        return defaultValue;
-      }
+    if(jsonValue != null) {
+      return jsonValue.longValue(defaultValue);
     }
     return defaultValue;
   }
@@ -257,6 +352,8 @@ public class JsonArray extends JsonValue implements IJsonCollection //, Iterator
     JsonValue jsonValue = this.members.get(key);
     if(jsonValue != null && jsonValue instanceof JsonString) {
       return ((JsonString)jsonValue).getValue();
+    } else if(jsonValue != null) {
+      return jsonValue.stringValue();
     }
     return defaultValue;
   }
@@ -269,6 +366,8 @@ public class JsonArray extends JsonValue implements IJsonCollection //, Iterator
     JsonValue jsonValue = this.members.get(key);
     if(jsonValue != null && jsonValue instanceof JsonBoolean) {
       return ((JsonBoolean)jsonValue).getValue();
+    } else if(jsonValue != null && jsonValue instanceof JsonNumber) {
+      return (((JsonNumber)jsonValue).getAsLong() != 0);
     }
     return defaultValue;
   }
@@ -278,7 +377,7 @@ public class JsonArray extends JsonValue implements IJsonCollection //, Iterator
     if(jsonValue != null && jsonValue instanceof JsonArray) {
       return ((JsonArray)jsonValue);
     }
-    return new JsonArray();
+    return null;
   }
 
   public JsonClass getClass(int key) {
@@ -286,7 +385,7 @@ public class JsonArray extends JsonValue implements IJsonCollection //, Iterator
     if(jsonValue != null && jsonValue instanceof JsonClass) {
       return ((JsonClass)jsonValue);
     }
-    return new JsonClass();
+    return null;
   }
 
   public static JsonArray fromString(String json) {
